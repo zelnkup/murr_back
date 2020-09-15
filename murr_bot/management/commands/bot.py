@@ -1,7 +1,9 @@
 import asyncio
 import os
 import random
+import re
 
+import requests
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.contrib.fsm_storage.redis import RedisStorage2
 from aiogram.dispatcher import DEFAULT_RATE_LIMIT
@@ -17,11 +19,26 @@ class Command(BaseCommand):
     help = 'Мурр бот разные выводит штуки'
 
     def handle(self, *args, **options):
+        search_tag = 'sexy girl'
+        per_page = 100
+        page = 5
+        for _ in range(page):
+            response = requests.get(
+                f'https://coub.com/api/v2/timeline/tag/{search_tag}?order_by=newest_popular&per_page={per_page}&page={_ + 1}').json()
+            for i in response['coubs']:
+                if i['file_versions']['share']['default'] is not None:
+                    title = [re.sub(r"[^a-zA-Z0-9]+", ' ', k) for k in i['title'].split("\n")][0]
+                    Coub.objects.create(
+                        title=title,
+                        likes_count=i['likes_count'],
+                        url=i['file_versions']['share']['default'],
+                        search_phrase='sexy girl'
+                    )
         dp.middleware.setup(ThrottlingMiddleware())
         executor.start_polling(dp)
 
 
-TOKEN = os.environ.get("BOT_TOKEN", '737836476:AAE8WivMe26JfPm0hu28mAkBzpuxf5fs6Kk')
+TOKEN = os.environ.get("BOT_TOKEN", '635496211:AAFGUjMa_NgSQ5c-Cr_19qLnq3HDZigrwx4')
 
 storage = RedisStorage2(host=os.environ.get("REDIS_HOST", 'localhost'), db=5)
 bot = Bot(token=TOKEN)
